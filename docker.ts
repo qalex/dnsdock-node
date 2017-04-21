@@ -4,7 +4,7 @@ const docker = new Docker({socketPath: '/var/run/docker.sock'});
 
 export let runningContainers : { [key:string]: Docker.ContainerInspectInfo } = {};
 
-import DockerEvents = require('docker-events');
+let DockerEvents = require('docker-events');
 new DockerEvents({ docker })
   .on("connect", function() {
     console.log("connected to docker api");
@@ -12,12 +12,12 @@ new DockerEvents({ docker })
   .on("disconnect", function() {
     console.log("disconnected from docker api");
   })
-  .on('start', function(data) {
+  .on('start', function(data: any) {
     docker.getContainer(data.id).inspect(function(err, inspect) {
       runningContainers[data.id] = inspect;
     });
   })
-  .on('die', function(data) {
+  .on('die', function(data: any) {
     delete runningContainers[data.id];
   })
   .start();

@@ -1,24 +1,23 @@
-// --
 // DNS Part
-// --
+
+import { runningContainers } from './docker';
 
 const ttl = 0;
 const dnsPort = 53;
 
-import NodeNamed = require('node-named');
-import { ARecord, AAAARecord, CNAMERecord, MXRecord, SOARecord, SRVRecord, TXTRecord } from 'node-named';
-import { runningContainers } from './docker';
-
-
-let forwardDns;
+import dns = require('dns');
+let dnsForward = false;
 if (process.env.DNS_SERVER) {
-  forwardDns = require('dns');
-  forwardDns.setServers([process.env.DNS_SERVER]);
+  dns.setServers([process.env.DNS_SERVER]);
+  dnsForward = true;
+} else {
+  console.log("Not forwarding queries to any DNS server because DNS_SERVER env variable not set");
 }
 
+const NodeNamed = require('node-named');
 const nameserver = NodeNamed.createServer();
 nameserver
-  .on('query', function(query) {
+  .on('query', function(query: any) {
     let domain: string = query.name();
     console.log('DNS Query: %s type %s', domain, query.type());
 
@@ -28,17 +27,17 @@ nameserver
         return;
       }
 
-      let fqdns = Object.keys(runningContainers)
+      let fqdns: { [domain:string]:string } = Object.keys(runningContainers)
         .reduce((obj, id) => Object.assign(obj, getContainerFQDNs(runningContainers[id])), {});
 
       let ip = fqdns[domain];
       if (ip) {
-        query.addAnswer(domain, new ARecord(ip), ttl);
+        query.addAnswer(domain, new NodeNamed.ARecord(ip), ttl);
       }
       
       nameserver.send(query);
     } else {
-      if (forwardDns) {
+      if (dnsForward) {
         forward(query);
       } else {
         nameserver.send(query); // empty query
@@ -53,37 +52,30 @@ nameserver
  * 
  * @param query query received
  */
-function forward(query) {
-  interface MxRecord {
-      exchange: string,
-      priority: number
-  }
-
+import { MxRecord } from 'dns';
+function forward(query: any) {
   let domain = query.name();
   let type = query.type();
   
-  forwardDns.resolve(domain, type, function(err: Error, addresses: string[] | MxRecord[] | string[][] | Object) {
+  dns.resolve(domain, type, function(err: Error, addresses: string[] | MxRecord[] | string[][] | Object) {
     if (err) {
-      //console.log(err);
       nameserver.send(query);
       return;
     }
 
-    //console.log(addresses);
-
     switch (type) {
       case 'A':
-          (<string[]>addresses).forEach(addr => query.addAnswer(domain, new ARecord(addr), ttl));
+          (addresses as string[]).forEach(addr => query.addAnswer(domain, new NodeNamed.ARecord(addr), ttl));
           break;
       case 'AAAA':
-          (<string[]>addresses).forEach(addr => query.addAnswer(domain, new AAAARecord(addr), ttl));
+          (addresses as string[]).forEach(addr => query.addAnswer(domain, new NodeNamed.AAAARecord(addr), ttl));
           break;
       case 'CNAME':
-          (<string[]>addresses).forEach(addr => query.addAnswer(domain, new CNAMERecord(addr), ttl));
+          (addresses as string[]).forEach(addr => query.addAnswer(domain, new NodeNamed.CNAMERecord(addr), ttl));
           break;
       case 'MX':
-          (<MxRecord[]>addresses).forEach(mx => query.addAnswer(domain,
-              new MXRecord(mx.exchange, {priority: mx.priority}), ttl));
+          (addresses as MxRecord[]).forEach(mx => query.addAnswer(domain,
+              new NodeNamed.MXRecord(mx.exchange, {priority: mx.priority}), ttl));
           break;
       case 'SOA':
       case 'SRV':
@@ -116,7 +108,7 @@ export function getContainerFQDNs(container: ContainerInspectInfo) : { [key:stri
 
   let networks = container.NetworkSettings.Networks;
 
-  return Object.keys(networks).reduce((obj, network) => {
+  return Object.keys(networks).reduce((obj: {[fqdn:string]:string}, network) => {
     let fqdn = name + "." + image + "." + network + ".docker";
     fqdn = fqdn.replace(/_/g, "-");
 
