@@ -1,0 +1,33 @@
+{
+  "name": "dnsdock-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "npm run build:live",
+    "debug": "npm run build:debug",
+    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./app.ts",
+    "build:debug": "nodemon --inspect --exec ./node_modules/.bin/ts-node -- ./app.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Alex Shchagin",
+    "email": "a@shchagin.name",
+    "url": "https://github.com/qalex"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "docker-events": "0.0.2",
+    "dockerode": "^2.4.3",
+    "express": "^4.15.0",
+    "node-named": "0.0.1",
+    "pug": "^2.0.0-beta6"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^2.4.0",
+    "@types/node": "^7.0.0",
+    "nodemon": "^1.11.0",
+    "ts-node": "^2.1.2",
+    "typescript": "^2.3.0"
+  }
+}

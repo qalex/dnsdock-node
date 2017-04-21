@@ -1,0 +1,13 @@
+html
+  head
+    title Docker Services
+  body
+    h1 Docker Services
+    ol
+      each urls, id in services
+        li
+          = id
+          ul
+            each url in urls
+              li
+                a(href=url target='_blank')= url
