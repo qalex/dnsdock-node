@@ -10,4 +10,7 @@ html
           ul
             each url in urls
               li
-                a(href=url target='_blank')= url
+                if url.startsWith('http')
+                  a(href=url target='_blank')= url
+                else
+                  = url

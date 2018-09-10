@@ -2,6 +2,7 @@ version: '2'
 services:
   node:
     build: .
+    image: docker.quisapps.com/dnsdock-node
     volumes:
       - .:/home/node
       - /var/run/docker.sock:/var/run/docker.sock
@@ -9,6 +10,7 @@ services:
     #command: "npm run debug"
     environment: 
       DNS_SERVER: 192.168.1.1
+    container_name: dnsdock
 
 networks:
   default:

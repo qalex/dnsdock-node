@@ -1,5 +1,5 @@
+import * as Docker from "dockerode";
 
-import Docker = require("dockerode");
 const docker = new Docker({socketPath: '/var/run/docker.sock'});
 
 export let runningContainers : { [key:string]: Docker.ContainerInspectInfo } = {};

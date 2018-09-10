@@ -1,4 +1,3 @@
-
-require('./docker');
-require('./dns');
-require('./http');
+import './docker';
+import './dns';
+import './http';

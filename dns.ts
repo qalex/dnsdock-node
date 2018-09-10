@@ -1,15 +1,16 @@
 // DNS Part
 
 import { runningContainers } from './docker';
+import * as dns from 'dns';
 
 const ttl = 0;
 const dnsPort = 53;
 
-import dns = require('dns');
 let dnsForward = false;
 if (process.env.DNS_SERVER) {
   dns.setServers([process.env.DNS_SERVER]);
   dnsForward = true;
+  console.log("Forward DNS Server: " + process.env.DNS_SERVER);
 } else {
   console.log("Not forwarding queries to any DNS server because DNS_SERVER env variable not set");
 }
@@ -19,11 +20,13 @@ const nameserver = NodeNamed.createServer();
 nameserver
   .on('query', function(query: any) {
     let domain: string = query.name();
-    console.log('DNS Query: %s type %s', domain, query.type());
+    let log = `DNS Query: ${domain} type ${query.type()} -> `;
 
+    try {
     if (domain.endsWith('.docker')) {
       if (query.type() !== 'A') {
         nameserver.send(query);
+          log += "empty (not A)";
         return;
       }
 
@@ -33,15 +36,23 @@ nameserver
       let ip = fqdns[domain];
       if (ip) {
         query.addAnswer(domain, new NodeNamed.ARecord(ip), ttl);
+          log += ip;
+        } else {
+          log += "empty (not found)";
       }
       
       nameserver.send(query);
     } else {
       if (dnsForward) {
+          log += "forwarded";
         forward(query);
       } else {
         nameserver.send(query); // empty query
+          log += "empty (not forwarding)";
+        }
       }
+    } finally {
+      console.log(log);
     }
   })
   .listen(dnsPort, '::', function() {
@@ -59,9 +70,11 @@ function forward(query: any) {
   
   dns.resolve(domain, type, function(err: Error, addresses: string[] | MxRecord[] | string[][] | Object) {
     if (err) {
+      console.log(`ERR: ${err}`);
       nameserver.send(query);
       return;
     }
+    console.log(addresses);
 
     switch (type) {
       case 'A':

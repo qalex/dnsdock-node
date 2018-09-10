@@ -1,4 +1,4 @@
-import Express = require('express');
+import * as Express from 'express';
 let app = Express();
 
 import { runningContainers } from './docker';
@@ -12,17 +12,18 @@ app.get('/', function (req, res) {
     .map(container => {
       let name = container.Name.substr(1); // remove leading '/'
 
+      let FQDNs = getContainerFQDNs(container);
+      console.log(FQDNs);
+
       let labels = container.Config.Labels;
       let urlLabels = Object.keys(labels).filter(label => label.startsWith('url.'))
 
       let service: {[name:string]:string[]} = {};
-      service[name] = [];
       if (urlLabels.length == 0) {
+        service[name] = Object.keys(FQDNs);
         return service;
       }
 
-      let FQDNs = getContainerFQDNs(container);
-      
       service[name] = urlLabels
           .filter(label => label.startsWith('url.context'))
           .map(label => {
